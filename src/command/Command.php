@@ -31,11 +31,10 @@ use pocketmine\lang\KnownTranslationFactory;
 use pocketmine\lang\Translatable;
 use pocketmine\permission\PermissionManager;
 use pocketmine\Server;
-use pocketmine\timings\Timings;
-use pocketmine\timings\TimingsHandler;
 use pocketmine\utils\BroadcastLoggerForwarder;
 use pocketmine\utils\TextFormat;
 use function explode;
+use function implode;
 use function str_replace;
 
 abstract class Command{
@@ -45,28 +44,31 @@ abstract class Command{
 	private string $nextLabel;
 	private string $label;
 
-	/** @var string[] */
+	/**
+	 * @var string[]
+	 * @phpstan-var list<string>
+	 */
 	private array $aliases = [];
 
-	/** @var string[] */
+	/**
+	 * @var string[]
+	 * @phpstan-var list<string>
+	 */
 	private array $activeAliases = [];
 
 	private ?CommandMap $commandMap = null;
 
-	/** @var Translatable|string */
-	protected $description = "";
+	protected Translatable|string $description = "";
 
-	/** @var Translatable|string */
-	protected $usageMessage;
+	protected Translatable|string $usageMessage;
 
-	private ?string $permission = null;
+	/** @var string[] */
+	private array $permission = [];
 	private ?string $permissionMessage = null;
-
-	/** @var TimingsHandler|null */
-	public $timings = null;
 
 	/**
 	 * @param string[] $aliases
+	 * @phpstan-param list<string> $aliases
 	 */
 	public function __construct(string $name, Translatable|string $description = "", Translatable|string|null $usageMessage = null, array $aliases = []){
 		$this->name = $name;
@@ -88,19 +90,28 @@ abstract class Command{
 		return $this->name;
 	}
 
-	public function getPermission() : ?string{
+	/**
+	 * @return string[]
+	 */
+	public function getPermissions() : array{
 		return $this->permission;
 	}
 
-	public function setPermission(?string $permission) : void{
-		if($permission !== null){
-			foreach(explode(";", $permission) as $perm){
-				if(PermissionManager::getInstance()->getPermission($perm) === null){
-					throw new \InvalidArgumentException("Cannot use non-existing permission \"$perm\"");
-				}
+	/**
+	 * @param string[] $permissions
+	 */
+	public function setPermissions(array $permissions) : void{
+		$permissionManager = PermissionManager::getInstance();
+		foreach($permissions as $perm){
+			if($permissionManager->getPermission($perm) === null){
+				throw new \InvalidArgumentException("Cannot use non-existing permission \"$perm\"");
 			}
 		}
-		$this->permission = $permission;
+		$this->permission = $permissions;
+	}
+
+	public function setPermission(?string $permission) : void{
+		$this->setPermissions($permission === null ? [] : explode(";", $permission));
 	}
 
 	public function testPermission(CommandSender $target, ?string $permission = null) : bool{
@@ -111,19 +122,15 @@ abstract class Command{
 		if($this->permissionMessage === null){
 			$target->sendMessage(KnownTranslationFactory::pocketmine_command_error_permission($this->name)->prefix(TextFormat::RED));
 		}elseif($this->permissionMessage !== ""){
-			$target->sendMessage(str_replace("<permission>", $permission ?? $this->permission, $this->permissionMessage));
+			$target->sendMessage(str_replace("<permission>", $permission ?? implode(";", $this->permission), $this->permissionMessage));
 		}
 
 		return false;
 	}
 
 	public function testPermissionSilent(CommandSender $target, ?string $permission = null) : bool{
-		$permission ??= $this->permission;
-		if($permission === null || $permission === ""){
-			return true;
-		}
-
-		foreach(explode(";", $permission) as $p){
+		$list = $permission !== null ? [$permission] : $this->permission;
+		foreach($list as $p){
 			if($target->hasPermission($p)){
 				return true;
 			}
@@ -139,7 +146,6 @@ abstract class Command{
 	public function setLabel(string $name) : bool{
 		$this->nextLabel = $name;
 		if(!$this->isRegistered()){
-			$this->timings = new TimingsHandler(Timings::INCLUDED_BY_OTHER_TIMINGS_PREFIX . "Command: " . $name);
 			$this->label = $name;
 
 			return true;
@@ -183,6 +189,7 @@ abstract class Command{
 
 	/**
 	 * @return string[]
+	 * @phpstan-return list<string>
 	 */
 	public function getAliases() : array{
 		return $this->activeAliases;
@@ -202,6 +209,7 @@ abstract class Command{
 
 	/**
 	 * @param string[] $aliases
+	 * @phpstan-param list<string> $aliases
 	 */
 	public function setAliases(array $aliases) : void{
 		$this->aliases = $aliases;

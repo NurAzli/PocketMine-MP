@@ -25,10 +25,14 @@ namespace pocketmine\permission;
 
 use pocketmine\plugin\Plugin;
 use pocketmine\plugin\PluginException;
+use pocketmine\utils\Utils;
 use function spl_object_id;
 
 class PermissionAttachment{
-	/** @var bool[] */
+	/**
+	 * @var bool[]
+	 * @phpstan-var array<string, bool>
+	 */
 	private array $permissions = [];
 
 	/**
@@ -60,6 +64,7 @@ class PermissionAttachment{
 
 	/**
 	 * @return bool[]
+	 * @phpstan-return array<string, bool>
 	 */
 	public function getPermissions() : array{
 		return $this->permissions;
@@ -78,9 +83,10 @@ class PermissionAttachment{
 
 	/**
 	 * @param bool[] $permissions
+	 * @phpstan-param array<string, bool> $permissions
 	 */
 	public function setPermissions(array $permissions) : void{
-		foreach($permissions as $key => $value){
+		foreach(Utils::stringifyKeys($permissions) as $key => $value){
 			$this->permissions[$key] = $value;
 		}
 		$this->recalculatePermissibles();
@@ -96,10 +102,7 @@ class PermissionAttachment{
 		$this->recalculatePermissibles();
 	}
 
-	/**
-	 * @param string|Permission $name
-	 */
-	public function setPermission($name, bool $value) : void{
+	public function setPermission(Permission|string $name, bool $value) : void{
 		$name = $name instanceof Permission ? $name->getName() : $name;
 		if(isset($this->permissions[$name])){
 			if($this->permissions[$name] === $value){
@@ -120,10 +123,7 @@ class PermissionAttachment{
 		$this->recalculatePermissibles();
 	}
 
-	/**
-	 * @param string|Permission $name
-	 */
-	public function unsetPermission($name) : void{
+	public function unsetPermission(Permission|string $name) : void{
 		$name = $name instanceof Permission ? $name->getName() : $name;
 		if(isset($this->permissions[$name])){
 			unset($this->permissions[$name]);

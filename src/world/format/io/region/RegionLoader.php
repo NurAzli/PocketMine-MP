@@ -64,27 +64,23 @@ class RegionLoader{
 
 	public const FIRST_SECTOR = 2; //location table occupies 0 and 1
 
-	/** @var int */
-	public static $COMPRESSION_LEVEL = 7;
-
-	/** @var string */
-	protected $filePath;
 	/** @var resource */
 	protected $filePointer;
-	/** @var int */
-	protected $nextSector = self::FIRST_SECTOR;
-	/** @var RegionLocationTableEntry[]|null[] */
-	protected $locationTable = [];
-	/** @var RegionGarbageMap */
-	protected $garbageTable;
-	/** @var int */
-	public $lastUsed = 0;
+	protected int $nextSector = self::FIRST_SECTOR;
+	/**
+	 * @var RegionLocationTableEntry[]|null[]
+	 * @phpstan-var list<RegionLocationTableEntry|null>
+	 */
+	protected array $locationTable = [];
+	protected RegionGarbageMap $garbageTable;
+	public int $lastUsed;
 
 	/**
 	 * @throws CorruptedRegionException
 	 */
-	private function __construct(string $filePath){
-		$this->filePath = $filePath;
+	private function __construct(
+		protected string $filePath
+	){
 		$this->garbageTable = new RegionGarbageMap([]);
 		$this->lastUsed = time();
 
@@ -334,7 +330,6 @@ class RegionLoader{
 	 * @throws CorruptedRegionException
 	 */
 	private function checkLocationTableValidity() : void{
-		/** @var int[] $usedOffsets */
 		$usedOffsets = [];
 
 		$fileSize = filesize($this->filePath);
@@ -362,7 +357,7 @@ class RegionLoader{
 		}
 		ksort($usedOffsets, SORT_NUMERIC);
 		$prevLocationIndex = null;
-		foreach($usedOffsets as $startOffset => $locationTableIndex){
+		foreach($usedOffsets as $locationTableIndex){
 			if($this->locationTable[$locationTableIndex] === null){
 				continue;
 			}

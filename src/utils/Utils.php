@@ -31,6 +31,7 @@ use DaveRandom\CallbackValidator\CallbackType;
 use pocketmine\entity\Location;
 use pocketmine\errorhandler\ErrorTypeToStringMap;
 use pocketmine\math\Vector3;
+use pocketmine\thread\ThreadCrashInfoFrame;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use function array_combine;
@@ -66,6 +67,8 @@ use function is_nan;
 use function is_object;
 use function is_string;
 use function mb_check_encoding;
+use function mt_getrandmax;
+use function mt_rand;
 use function ob_end_clean;
 use function ob_get_contents;
 use function ob_start;
@@ -79,11 +82,12 @@ use function preg_match_all;
 use function preg_replace;
 use function shell_exec;
 use function spl_object_id;
+use function str_contains;
 use function str_pad;
 use function str_split;
+use function str_starts_with;
 use function stripos;
 use function strlen;
-use function strpos;
 use function substr;
 use function sys_get_temp_dir;
 use function trim;
@@ -119,7 +123,7 @@ final class Utils{
 	 */
 	public static function getNiceClosureName(\Closure $closure) : string{
 		$func = new \ReflectionFunction($closure);
-		if(substr($func->getName(), -strlen('{closure}')) !== '{closure}'){
+		if(!str_contains($func->getName(), '{closure')){
 			//closure wraps a named function, can be done with reflection or fromCallable()
 			//isClosure() is useless here because it just tells us if $func is reflecting a Closure object
 
@@ -171,16 +175,17 @@ final class Utils{
 	}
 
 	/**
-	 * @phpstan-template T of object
+	 * @phpstan-template TKey of array-key
+	 * @phpstan-template TValue of object
 	 *
 	 * @param object[] $array
-	 * @phpstan-param T[] $array
+	 * @phpstan-param array<TKey, TValue> $array
 	 *
 	 * @return object[]
-	 * @phpstan-return T[]
+	 * @phpstan-return array<TKey, TValue>
 	 */
 	public static function cloneObjectArray(array $array) : array{
-		/** @phpstan-var \Closure(T) : T $callback */
+		/** @phpstan-var \Closure(TValue) : TValue $callback */
 		$callback = self::cloneCallback();
 		return array_map($callback, $array);
 	}
@@ -273,7 +278,7 @@ final class Utils{
 		if(self::$os === null || $recalculate){
 			$uname = php_uname("s");
 			if(stripos($uname, "Darwin") !== false){
-				if(strpos(php_uname("m"), "iP") === 0){
+				if(str_starts_with(php_uname("m"), "iP")){
 					self::$os = self::OS_IOS;
 				}else{
 					self::$os = self::OS_MACOS;
@@ -345,10 +350,8 @@ final class Utils{
 
 	/**
 	 * Returns a string that can be printed, replaces non-printable characters
-	 *
-	 * @param mixed $str
 	 */
-	public static function printable($str) : string{
+	public static function printable(mixed $str) : string{
 		if(!is_string($str)){
 			return gettype($str);
 		}
@@ -369,10 +372,7 @@ final class Utils{
 		return $hash;
 	}
 
-	/**
-	 * @param object $value
-	 */
-	public static function getReferenceCount($value, bool $includeCurrent = true) : int{
+	public static function getReferenceCount(object $value, bool $includeCurrent = true) : int{
 		ob_start();
 		debug_zval_dump($value);
 		$contents = ob_get_contents();
@@ -405,7 +405,7 @@ final class Utils{
 	}
 
 	/**
-	 * @param mixed[] $trace
+	 * @param mixed[][] $trace
 	 * @return string[]
 	 */
 	public static function printableExceptionInfo(\Throwable $e, $trace = null) : array{
@@ -447,6 +447,7 @@ final class Utils{
 	 * @phpstan-param list<array<string, mixed>> $trace
 	 *
 	 * @return string[]
+	 * @phpstan-return list<string>
 	 */
 	public static function printableTrace(array $trace, int $maxStringLength = 80) : array{
 		$messages = [];
@@ -458,7 +459,7 @@ final class Utils{
 				}else{
 					$args = $trace[$i]["params"];
 				}
-				/** @var mixed[] $args */
+				/** @phpstan-var array<int, mixed> $args */
 
 				$paramsList = [];
 				$offset = 0;
@@ -471,6 +472,30 @@ final class Utils{
 			$messages[] = "#$i " . (isset($trace[$i]["file"]) ? Filesystem::cleanPath($trace[$i]["file"]) : "") . "(" . (isset($trace[$i]["line"]) ? $trace[$i]["line"] : "") . "): " . (isset($trace[$i]["class"]) ? $trace[$i]["class"] . (($trace[$i]["type"] === "dynamic" || $trace[$i]["type"] === "->") ? "->" : "::") : "") . $trace[$i]["function"] . "(" . Utils::printable($params) . ")";
 		}
 		return $messages;
+	}
+
+	/**
+	 * Similar to {@link Utils::printableTrace()}, but associates metadata such as file and line number with each frame.
+	 * This is used to transmit thread-safe information about crash traces to the main thread when a thread crashes.
+	 *
+	 * @param mixed[][] $rawTrace
+	 * @phpstan-param list<array<string, mixed>> $rawTrace
+	 *
+	 * @return ThreadCrashInfoFrame[]
+	 */
+	public static function printableTraceWithMetadata(array $rawTrace, int $maxStringLength = 80) : array{
+		$printableTrace = self::printableTrace($rawTrace, $maxStringLength);
+		$safeTrace = [];
+		foreach($printableTrace as $frameId => $printableFrame){
+			$rawFrame = $rawTrace[$frameId];
+			$safeTrace[$frameId] = new ThreadCrashInfoFrame(
+				$printableFrame,
+				$rawFrame["file"] ?? "unknown",
+				$rawFrame["line"] ?? 0
+			);
+		}
+
+		return $safeTrace;
 	}
 
 	/**
@@ -586,6 +611,18 @@ final class Utils{
 		}
 	}
 
+	/**
+	 * Gets rid of PHPStan BenevolentUnionType on array keys, so that wrong type errors get reported properly
+	 * Use this if you don't care what the key type is and just want proper PHPStan error reporting
+	 *
+	 * @phpstan-template TValueType
+	 * @phpstan-param array<TValueType> $array
+	 * @phpstan-return array<int|string, TValueType>
+	 */
+	public static function promoteKeys(array $array) : array{
+		return $array;
+	}
+
 	public static function checkUTF8(string $string) : void{
 		if(!mb_check_encoding($string, 'UTF-8')){
 			throw new \InvalidArgumentException("Text must be valid UTF-8");
@@ -652,5 +689,13 @@ final class Utils{
 
 		//jit not available
 		return null;
+	}
+
+	/**
+	 * Returns a random float between 0.0 and 1.0
+	 * Drop-in replacement for lcg_value()
+	 */
+	public static function getRandomFloat() : float{
+		return mt_rand() / mt_getrandmax();
 	}
 }

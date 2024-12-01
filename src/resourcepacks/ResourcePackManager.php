@@ -23,14 +23,14 @@ declare(strict_types=1);
 
 namespace pocketmine\resourcepacks;
 
-use pocketmine\errorhandler\ErrorToExceptionHandler;
 use pocketmine\utils\Config;
+use pocketmine\utils\Filesystem;
+use pocketmine\utils\Utils;
 use Symfony\Component\Filesystem\Path;
 use function array_keys;
 use function copy;
 use function count;
 use function file_exists;
-use function file_get_contents;
 use function gettype;
 use function is_array;
 use function is_dir;
@@ -88,7 +88,7 @@ class ResourcePackManager{
 			throw new \InvalidArgumentException("\"resource_stack\" key should contain a list of pack names");
 		}
 
-		foreach($resourceStack as $pos => $pack){
+		foreach(Utils::promoteKeys($resourceStack) as $pos => $pack){
 			if(!is_string($pack) && !is_int($pack) && !is_float($pack)){
 				$logger->critical("Found invalid entry in resource pack list at offset $pos of type " . gettype($pack));
 				continue;
@@ -104,10 +104,8 @@ class ResourcePackManager{
 				$keyPath = Path::join($this->path, $pack . ".key");
 				if(file_exists($keyPath)){
 					try{
-						$key = ErrorToExceptionHandler::trapAndRemoveFalse(
-							fn() => file_get_contents($keyPath)
-						);
-					}catch(\ErrorException $e){
+						$key = Filesystem::fileGetContents($keyPath);
+					}catch(\RuntimeException $e){
 						throw new ResourcePackException("Could not read encryption key file: " . $e->getMessage(), 0, $e);
 					}
 					$key = rtrim($key, "\r\n");
@@ -155,6 +153,13 @@ class ResourcePackManager{
 	 */
 	public function resourcePacksRequired() : bool{
 		return $this->serverForceResources;
+	}
+
+	/**
+	 * Sets whether players must accept resource packs in order to join.
+	 */
+	public function setResourcePacksRequired(bool $value) : void{
+		$this->serverForceResources = $value;
 	}
 
 	/**
