@@ -34,6 +34,7 @@ use Symfony\Component\Filesystem\Path;
 use function file_exists;
 use function rename;
 use function strtolower;
+use function unlink;
 use function zlib_decode;
 use function zlib_encode;
 use const ZLIB_ENCODING_GZIP;
@@ -96,5 +97,9 @@ final class DatFilePlayerDataProvider implements PlayerDataProvider{
 		}catch(\RuntimeException $e){
 			throw new PlayerDataSaveException("Failed to write player data file: " . $e->getMessage(), 0, $e);
 		}
+	}
+
+	public function deleteData(string $name) : void{
+		@unlink($this->getPlayerDataPath($name));
 	}
 }

@@ -49,4 +49,9 @@ interface PlayerDataProvider{
 	 * @throws PlayerDataSaveException
 	 */
 	public function saveData(string $name, CompoundTag $data) : void;
+
+	/**
+	 * Deletes data for the given player name, if it exists.
+	 */
+	public function deleteData(string $name) : void;
 }

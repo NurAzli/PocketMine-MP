@@ -60,6 +60,7 @@ abstract class DefaultPermissions{
 		self::registerPermission(new Permission(Names::COMMAND_CLEAR_OTHER, l10n::pocketmine_permission_command_clear_other()), [$operatorRoot]);
 		self::registerPermission(new Permission(Names::COMMAND_CLEAR_SELF, l10n::pocketmine_permission_command_clear_self()), [$everyoneRoot]);
 		self::registerPermission(new Permission(Names::COMMAND_DEFAULTGAMEMODE, l10n::pocketmine_permission_command_defaultgamemode()), [$operatorRoot]);
+		self::registerPermission(new Permission(Names::COMMAND_DELETEPLAYERDATA, "Allows the user to delete data for any player"), [$consoleRoot]); //limited to console to match original ability to delete player data by deleting the player.dat file
 		self::registerPermission(new Permission(Names::COMMAND_DIFFICULTY, l10n::pocketmine_permission_command_difficulty()), [$operatorRoot]);
 		self::registerPermission(new Permission(Names::COMMAND_DUMPMEMORY, l10n::pocketmine_permission_command_dumpmemory()), [$consoleRoot]);
 		self::registerPermission(new Permission(Names::COMMAND_EFFECT_OTHER, l10n::pocketmine_permission_command_effect_other()), [$operatorRoot]);

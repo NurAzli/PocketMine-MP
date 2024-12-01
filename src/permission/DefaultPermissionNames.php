@@ -32,6 +32,7 @@ final class DefaultPermissionNames{
 	public const COMMAND_CLEAR_OTHER = "pocketmine.command.clear.other";
 	public const COMMAND_CLEAR_SELF = "pocketmine.command.clear.self";
 	public const COMMAND_DEFAULTGAMEMODE = "pocketmine.command.defaultgamemode";
+	public const COMMAND_DELETEPLAYERDATA = "pocketmine.command.deleteplayerdata";
 	public const COMMAND_DIFFICULTY = "pocketmine.command.difficulty";
 	public const COMMAND_DUMPMEMORY = "pocketmine.command.dumpmemory";
 	public const COMMAND_EFFECT_OTHER = "pocketmine.command.effect.other";

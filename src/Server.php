@@ -554,6 +554,13 @@ class Server{
 	}
 
 	/**
+	 * Deletes the specified player's offline data.
+	 */
+	public function deleteOfflinePlayerData(string $name) : void{
+		$this->playerDataProvider->deleteData($name);
+	}
+
+	/**
 	 * @phpstan-return Promise<Player>
 	 */
 	public function createPlayer(NetworkSession $session, PlayerInfo $playerInfo, bool $authenticated, ?CompoundTag $offlinePlayerData) : Promise{

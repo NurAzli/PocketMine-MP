@@ -79,4 +79,8 @@ final class LevelDBPlayerDataProvider implements PlayerDataProvider{
 	public function saveData(string $name, CompoundTag $data) : void{
 		$this->db->put($this->getKey($name), (new BigEndianNbtSerializer())->write(new TreeRoot($data)));
 	}
+
+	public function deleteData(string $name) : void{
+		$this->db->delete($this->getKey($name));
+	}
 }
