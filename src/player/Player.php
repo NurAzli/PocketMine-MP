@@ -1898,7 +1898,7 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer{
 		}else{
 			$this->logger->debug("Cancelled interaction of block at $pos due to not currently being interactable");
 		}
-		
+
 		if($item->getTypeId() === ItemTypeIds::BONE_MEAL){
 			$block = $this->world->getBlock($blockPos);
 			if($block instanceof Grass){
