@@ -100,7 +100,6 @@ use pocketmine\item\Item;
 use pocketmine\item\ItemTypeIds;
 use pocketmine\item\ItemUseResult;
 use pocketmine\item\Releasable;
-use pocketmine\item\VanillaItems;
 use pocketmine\lang\KnownTranslationFactory;
 use pocketmine\lang\Language;
 use pocketmine\lang\Translatable;
