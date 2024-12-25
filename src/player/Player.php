@@ -97,8 +97,10 @@ use pocketmine\item\Durable;
 use pocketmine\item\enchantment\EnchantmentInstance;
 use pocketmine\item\enchantment\MeleeWeaponEnchantment;
 use pocketmine\item\Item;
+use pocketmine\item\ItemTypeIds;
 use pocketmine\item\ItemUseResult;
 use pocketmine\item\Releasable;
+use pocketmine\item\VanillaItems;
 use pocketmine\lang\KnownTranslationFactory;
 use pocketmine\lang\Language;
 use pocketmine\lang\Translatable;
@@ -1897,6 +1899,17 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer{
 		}else{
 			$this->logger->debug("Cancelled interaction of block at $pos due to not currently being interactable");
 		}
+		
+		if($item->getTypeId() === ItemTypeIds::BONE_MEAL)
+			$block = $world->getBlock($blockPos);
+		if($block instanceof Grass){
+			$world->setBlock($blockPos, VanillaBlocks::TALL_GRASS());
+			//TODO: Bone Meal Particle
+			$item->pop();
+			$player->getInventory()->setItemInHand($item);
+			return;
+		}
+										   }
 
 		return false;
 	}
