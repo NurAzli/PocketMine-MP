@@ -1900,11 +1900,11 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer{
 		}
 
 		if($item->getTypeId() === ItemTypeIds::BONE_MEAL){
-			$block = $this->getWorld->getBlock($blockPos);
+			$block = $this->getWorld()->getBlock($blockPos);
 			if($block instanceof Grass){
-				$this->getWJorld->setBlock($blockPos, VanillaBlocks::TALL_GRASS());
+				$this->getWorld()->setBlock($blockPos, VanillaBlocks::TALL_GRASS());
 				//TODO: Bone Meal Particle
-				$this->getItem->pop();
+				$this->getItem()->pop();
 				$this->getInventory()->setItemInHand($item);
 				return true;
 			}
